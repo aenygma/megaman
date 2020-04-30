@@ -1,0 +1,35 @@
+Additional items:
+* Notes field to jot interesting links, aggregated sites, etc
+* Type Field, for Series, ongoing, movies, wishlist vs done etc
+
+Schedule policy:
+* time periods and speeds
+* triggerable 
+
+Design:
+* Using eventlib
+ - Attach FS event listener to a current_settings file.
+ - update settings file
+
+* Megatools
+    * megatools has new sig handler that forces it get new speed settings 
+        * read from fifo?
+    * mega_session_set_speed() can be used to update sessions's speed
+     * Not sure if the worker picks this up or needs to be kicked
+
+* Scheduler
+    * external prog triggers it at given <time>, with given <speed>
+    * server
+     * reads schedule, sleeps until next
+     * writes to a fifo
+    * cli
+     * C/R/U/D schedule
+     * Validate megatools running on cli/server start
+     * Validate settings    
+  * Write in Python and Go
+
+Giant sites:
+
+https://forum.snahp.it/viewtopic.php?f=13&p=85418#p85418
+https://forum.snahp.it/viewtopic.php?f=13&t=34584&hilit=steins+gate
+
