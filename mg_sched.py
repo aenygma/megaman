@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+# pylint: disable=W0703
+
 """
 This module is to manage a schedule of times and speeds
 that Megatools downloader should run at.
@@ -32,6 +34,12 @@ def validate():
         sys.exit(1)
     return True
 
+#   ____ _     ___                      _
+#  / ___| |   |_ _|   ___ _ __ ___   __| |___
+# | |   | |    | |   / __| '_ ` _ \ / _` / __|
+# | |___| |___ | |  | (__| | | | | | (_| \__ \
+#  \____|_____|___|  \___|_| |_| |_|\__,_|___/
+
 @click.group()
 def cli():
     """ dummy function for click argument parsing """
@@ -48,31 +56,31 @@ def new_sched_entry(time, speed):
         time = int(time)
         if ((time < 0) or (time > 2400)):
             raise IndexError
-    except ValueError as e:
-        click.echo("Error: Time must be an Integer. " + str(e))
-    except IndexError as e:
-        click.echo("Error: Time must be between 0 and 2400. " + str(e))
-    except Exception as e:
-        click.echo("Error: WTF did you do? " + str(e))
+    except ValueError as exc:
+        click.echo("Error: Time must be an Integer. " + str(exc))
+    except IndexError as exc:
+        click.echo("Error: Time must be between 0 and 2400. " + str(exc))
+    except Exception as exc:
+        click.echo("Error: WTF did you do? " + str(exc))
 
     # validate speed
     try:
         speed = int(speed)
         if ((speed < 1) or (speed > 1000)):
             raise IndexError
-    except ValueError as e:
-        click.echo("Error: Speed must be an Integer. " + str(e))
-    except IndexError as e:
-        click.echo("Error: Speed must be between 0 and 1000. " + str(e))
-    except Exception as e:
-        click.echo("Error: WTF did you do? " + str(e))
+    except ValueError as exc:
+        click.echo("Error: Speed must be an Integer. " + str(exc))
+    except IndexError as exc:
+        click.echo("Error: Speed must be between 0 and 1000. " + str(exc))
+    except Exception as exc:
+        click.echo("Error: WTF did you do? " + str(exc))
 
     config = configparser.ConfigParser()
     config.read(CONFIG_FILE)
     config.set(CONFIG_PROFILE, '%04.f' % int(time), str(speed))
 
-    with open(CONFIG_FILE, 'w') as fp:
-        config.write(fp)
+    with open(CONFIG_FILE, 'w') as filehandle:
+        config.write(filehandle)
 
 @cli.command(name='list', help="List schedule entries")
 def list_sched():
@@ -84,8 +92,8 @@ def list_sched():
     print()
     print("Time", "\t", "Speed")
     print("====", "\t", "=====")
-    for (k,v) in config[CONFIG_PROFILE].items():
-        print(k, "\t", v)
+    for (time, speed) in config[CONFIG_PROFILE].items():
+        print(time, "\t", speed)
     print()
 
 @cli.command(name='remove', help="Delete schedule entry")
@@ -101,9 +109,15 @@ def delete_schedule(time):
         click.echo("Error: Couldn't find the entry.")
         return
 
-    with open(CONFIG_FILE, 'w') as fp:
-        config.write(fp)
+    with open(CONFIG_FILE, 'w') as filehandle:
+        config.write(filehandle)
     click.echo("Removed entry for time: %s" % time)
+
+#                  _
+#  _ __ ___   __ _(_)_ __
+# | '_ ` _ \ / _` | | '_ \
+# | | | | | | (_| | | | | |
+# |_| |_| |_|\__,_|_|_| |_|
 
 if __name__ == "__main__":
     # validate config
