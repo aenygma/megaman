@@ -6,9 +6,8 @@ This module is to manage a schedule of times and speeds
 that Megatools downloader should run at.
 """
 
-import os
 import sys
-import time
+import time as ptime
 import signal
 import subprocess
 import configparser
@@ -66,22 +65,22 @@ def run_schedules():
     bail = False
 
     def sig_handler(signo, frame):
+        print(bail)
         msg = ("Caught signal: %d | frame: " % signo)  + str(frame)
         print(msg)
-        if signo == signal.SIGWINCH.value:
+        if signo == signal.SIGWINCH:
             msg += " WICNCHYYY!!!! "
         with open(DAEMON_PIPE, 'w') as pipe:
             pipe.write(msg+"\n")
-
-        if signo == signal.SIGHUP.value:
+        if signo == signal.SIGHUP:
             bail = True
-
 
     signal.signal(signal.SIGUSR1, sig_handler)
     signal.signal(signal.SIGHUP, sig_handler)
     signal.signal(signal.SIGWINCH, sig_handler)
+
     while not bail:
-        time.sleep(1)
+        ptime.sleep(1)
     with open(DAEMON_PIPE, 'w') as pipe:
         pipe.write("done")
     print('done')
@@ -166,17 +165,14 @@ def delete_schedule(time):
     click.echo("Removed entry for time: %s" % time)
 
 
-@click.group(name="daemon", help="yo mamma")
-def daemon_ctl():
-    pass
-
 @cli.command(name="run", help="start the scheduler")
 def daemon_run():
     """ Start the scheduling daemon """
- 
+
     if daemon_status:
         click.echo("> Scheduler already running.")
         return
+
     click.echo("> Trying to start daemon")
     daemon = Daemonize(app="test_app", pid=DAEMON_PIDFILE,
                        action=run_schedules)
@@ -185,8 +181,7 @@ def daemon_run():
 @cli.command(name="stop", help="stop the scheduler")
 def daemon_stop():
     """ Stop the scheduling daemon """
- 
-    ret = None
+
     if not daemon_status:
         click.echo("> Scheduler not running.")
         return
@@ -205,39 +200,23 @@ def daemon_stop():
 
 if __name__ == "__main__":
     click.clear()
-    # validate config
-    #validate()
     megatools_status = None
     daemon_status = check_pidfile()
 
     # TODO: Display status: Red/Green Icons?
-    print("""
-##############################################################
-#                                         _              _   #
-#   _ __ ___   ___  __ _  __ _   ___  ___| |__   ___  __| |  #
-#  | '_ ` _ \ / _ \/ _` |/ _` | / __|/ __| '_ \ / _ \/ _` |  #
-#  | | | | | |  __/ (_| | (_| | \__ \ (__| | | |  __/ (_| |  #
-#  |_| |_| |_|\___|\__, |\__,_| |___/\___|_| |_|\___|\__,_|  #
-#                  |___/                                     #
-#                                                            #""")
+    print("\n".join([
+        r"##############################################################",
+        r"#                                         _              _   #",
+        r"#   _ __ ___   ___  __ _  __ _   ___  ___| |__   ___  __| |  #",
+        r"#  | '_ ` _ \ / _ \/ _` |/ _` | / __|/ __| '_ \ / _ \/ _` |  #",
+        r"#  | | | | | |  __/ (_| | (_| | \__ \ (__| | | |  __/ (_| |  #",
+        r"#  |_| |_| |_|\___|\__, |\__,_| |___/\___|_| |_|\___|\__,_|  #",
+        r"#                  |___/                                     #",
+        r"#                                                            #",
+    ]))
     print("# MEGA:  ", megatools_status)
     print("# DAEMON:", daemon_status)
     print("##############################################################\n")
-
-#    if not daemon_status:
-#        try:
-#            pid = os.fork()
-#        except OSError as exc:
-#            print("Error forking: ", exc)
-#        # child
-#        if pid == 0:
-#            print("> Trying to start daemon")
-#            daemon = Daemonize(app="test_app", pid=DAEMON_PIDFILE,
-#                               action=run_schedules)
-#            daemon.start()
-#            print("# DAEMON:", check_pidfile())
-#            # doesn't seem to get here
-#        # parent is business as usual
 
     # do cli stuff
     cli()
