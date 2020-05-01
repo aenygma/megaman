@@ -37,11 +37,42 @@ def cli():
     """ dummy function for click argument parsing """
     return
 
-@cli.command(name='new', help="New schedule entry")
-def new_sched_entry():
+@cli.command(name='new', help="New/Edit schedule entry")
+@click.argument('time')
+@click.argument('speed')
+def new_sched_entry(time, speed):
     """ new schedule entry """
 
-    click.echo("new")
+    # validate time
+    try:
+        time = int(time)
+        if ((time < 0) or (time > 2400)):
+            raise IndexError
+    except ValueError as e:
+        click.echo("Error: Time must be an Integer. " + str(e))
+    except IndexError as e:
+        click.echo("Error: Time must be between 0 and 2400. " + str(e))
+    except Exception as e:
+        click.echo("Error: WTF did you do? " + str(e))
+
+    # validate speed
+    try:
+        speed = int(speed)
+        if ((speed < 1) or (speed > 1000)):
+            raise IndexError
+    except ValueError as e:
+        click.echo("Error: Speed must be an Integer. " + str(e))
+    except IndexError as e:
+        click.echo("Error: Speed must be between 0 and 1000. " + str(e))
+    except Exception as e:
+        click.echo("Error: WTF did you do? " + str(e))
+
+    config = configparser.ConfigParser()
+    config.read(CONFIG_FILE)
+    config.set(CONFIG_PROFILE, '%04.f' % int(time), str(speed))
+
+    with open(CONFIG_FILE, 'w') as fp:
+        config.write(fp)
 
 @cli.command(name='list', help="List schedule entries")
 def list_sched():
@@ -57,17 +88,22 @@ def list_sched():
         print(k, "\t", v)
     print()
 
-@cli.command(name='edit', help="Edit schedule entry")
-def edit_sched():
-    """ edit schedule entry """
-
-    click.echo("edit")
-
 @cli.command(name='remove', help="Delete schedule entry")
-def delete_schedule():
+@click.argument('time')
+def delete_schedule(time):
     """ delete schedule entry """
 
-    click.echo("remove")
+    config = configparser.ConfigParser()
+    config.read(CONFIG_FILE)
+
+    # remove
+    if not config.remove_option(CONFIG_PROFILE, time):
+        click.echo("Error: Couldn't find the entry.")
+        return
+
+    with open(CONFIG_FILE, 'w') as fp:
+        config.write(fp)
+    click.echo("Removed entry for time: %s" % time)
 
 if __name__ == "__main__":
     # validate config
