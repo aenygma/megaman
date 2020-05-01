@@ -73,7 +73,7 @@ def run_schedules():
 
         # if running, signal to update config
         if megatools_status:
-            print("sending signal to megatools")
+            log.info("sending signal to megatools")
             kill("megatools", signal.SIGHUP)
 
     def sig_handler(signo, frame):
@@ -93,16 +93,16 @@ def run_schedules():
     # begin work
     config = configparser.ConfigParser()
     config.read(CONFIG_FILE)
+    log.debug("Dir: " + os.getcwd())
 
     try:
-        for (time, speed) in config[CONFIG_PROFILE].items():
-            time_str = "%s:%s" % (time[0:2], time[2:])
-            print(time_str)
+        for (ttime, speed) in config[CONFIG_PROFILE].items():
+            time_str = "%s:%s" % (ttime[0:2], ttime[2:])
+            log.debug("> " + time_str)
             schedule.every().day.at(time_str).do(kick_downloader, speed=speed)
-            time.sleep(5)
-    except:
-        log.error(config)
-        log.error([i for i in config.items()])
+            #ptime.sleep(1)
+    except Exception as e:
+        log.error(e)
     print("doneeee")
 
     # now wait.
@@ -213,7 +213,7 @@ def daemon_start():
         click.echo("> Trying to start daemon")
         daemon = Daemonize(app="megatools scheduler", pid=DAEMON_PIDFILE,
                        action=run_schedules, verbose=True, foreground=True,
-                       logger=log)
+                       logger=log, chdir=os.getcwd())
         daemon.start()
     #parent   
     return
