@@ -100,11 +100,11 @@ def cli():
     """ dummy function for click argument parsing """
     return
 
-@cli.command(name='new', help="New/Edit schedule entry")
+@cli.command(name='add', help="New/Edit schedule entry")
 @click.argument('time')
 @click.argument('speed')
-def new_sched_entry(time, speed):
-    """ new schedule entry """
+def add_sched_entry(time, speed):
+    """ add new schedule entry """
 
     # validate time
     try:
@@ -151,10 +151,10 @@ def list_sched():
         print(time, "\t", speed)
     print()
 
-@cli.command(name='remove', help="Delete schedule entry")
+@cli.command(name='rem', help="Delete schedule entry")
 @click.argument('time')
-def delete_schedule(time):
-    """ delete schedule entry """
+def remove_schedule_entry(time):
+    """ remove schedule entry """
 
     config = configparser.ConfigParser()
     config.read(CONFIG_FILE)
