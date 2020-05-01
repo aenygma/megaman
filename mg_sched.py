@@ -107,6 +107,16 @@ def cli_list_sched():
 @click.argument('time')
 def cli_rem_schedule_entry(time):
     """ CLI Stub to remove schedule entry """
+
+    # TODO: confirm y/n
+    if time == "all":
+        config = configparser.ConfigParser()
+        config.read(CONFIG_FILE)
+        for (ttime, speed) in config[CONFIG_PROFILE].items():
+            config.remove_option(CONFIG_PROFILE, ttime)
+        with open(CONFIG_FILE, 'w') as filehandle:
+            config.write(filehandle)
+
     return remove_schedule_entry(time)
 
 # DAEMON
@@ -173,7 +183,6 @@ def list_sched():
     config = configparser.ConfigParser()
     config.read(CONFIG_FILE)
 
-    print()
     print("Time", "\t", "Speed")
     print("====", "\t", "=====")
     for (time, speed) in config[CONFIG_PROFILE].items():
