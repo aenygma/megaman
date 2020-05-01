@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# pylint: disable=W0703,C0103
+# pylint: disable=W0703,C0103,W0603
 
 """
 This module is to manage a schedule of times and speeds
@@ -93,17 +93,16 @@ def run_schedules():
     # begin work
     config = configparser.ConfigParser()
     config.read(CONFIG_FILE)
-    log.debug("Dir: " + os.getcwd())
+    log.debug("Dir: %s", os.getcwd())
 
     try:
         for (ttime, speed) in config[CONFIG_PROFILE].items():
             time_str = "%s:%s" % (ttime[0:2], ttime[2:])
-            log.debug("> " + time_str)
+            log.debug("> %s", time_str)
             schedule.every().day.at(time_str).do(kick_downloader, speed=speed)
             #ptime.sleep(1)
     except Exception as e:
         log.error(e)
-    print("doneeee")
 
     # now wait.
     # TODO: this needs to be refreshed when entries added/removed
@@ -113,7 +112,7 @@ def run_schedules():
 
     with open(DAEMON_PIPE, 'w') as pipe:
         pipe.write("done")
-    
+
 
 #   ____ _     ___                      _
 #  / ___| |   |_ _|   ___ _ __ ___   __| |___
@@ -212,10 +211,10 @@ def daemon_start():
     if pid == 0:
         click.echo("> Trying to start daemon")
         daemon = Daemonize(app="megatools scheduler", pid=DAEMON_PIDFILE,
-                       action=run_schedules, verbose=True, foreground=True,
-                       logger=log, chdir=os.getcwd())
+                           action=run_schedules, verbose=True, foreground=True,
+                           logger=log, chdir=os.getcwd())
         daemon.start()
-    #parent   
+    #parent
     return
 
 @cli.command(name="stop", help="stop the scheduler")
