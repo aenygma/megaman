@@ -1,0 +1,2 @@
+click==7.1.2
+schedule==0.6.0
