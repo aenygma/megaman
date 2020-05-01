@@ -10,13 +10,14 @@ import os
 import sys
 import time as ptime
 import signal
-import subprocess
 import configparser
 
 import click
 import schedule
 
 from daemonize import Daemonize
+
+import utils
 
 PROC_NAME = __file__[:-3]
 MEGA_PROC = "megatools"
@@ -26,37 +27,11 @@ DAEMON_PIDFILE = "/tmp/%s.pid" % PROC_NAME
 DAEMON_PIPE = "/tmp/.%s.pipe" % MEGA_PROC
 DAEMON_BAIL_FLAG = False
 
-def kill(process, signo=0, cat="name"):
-    """ emulate *nix pkill command """
-
-    cmd = "kill"
-    if cat == "name":
-        cmd = "pkill"
-
-    #import pdb; pdb.set_trace()
-    proc = subprocess.Popen([cmd, '-%d'%signo, process],
-                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    proc.communicate()
-    return proc.returncode
-
-def check_pidfile(pidfile=DAEMON_PIDFILE):
-    """ Check For the existence of a unix pid. """
-
-    try:
-        with open(pidfile, 'r') as filehandle:
-            return kill(filehandle.read(), cat="pid") == 0
-    except ValueError:
-        return False
-    except OSError:
-        return False
-    else:
-        return False
-
 def validate():
     """ validate configs """
 
     # Check if megatools is running
-    if kill(MEGA_PROC):
+    if utils.kill(MEGA_PROC):
         print("Megatools cli is not running.")
         sys.exit(1)
     return True
@@ -74,7 +49,7 @@ def run_schedules():
         # if running, signal to update config
         if megatools_status:
             log.info("sending signal to megatools")
-            kill("megatools", signal.SIGHUP)
+            utils.kill("megatools", signal.SIGHUP)
 
     def sig_handler(signo, frame):
         global DAEMON_BAIL_FLAG
@@ -227,7 +202,7 @@ def daemon_stop():
 
     # try stopping it
     with open(DAEMON_PIDFILE, 'r') as filehandle:
-        error = kill(filehandle.read(), signo=signal.SIGHUP, cat="pid") != 0
+        error = utils.kill(filehandle.read(), signo=signal.SIGHUP, cat="pid") != 0
     if error:
         click.echo("Couldn't stop scheduler.")
 
@@ -239,8 +214,23 @@ def daemon_stop():
 
 if __name__ == "__main__":
     click.clear()
-    megatools_status = kill(MEGA_PROC) == 0
-    daemon_status = check_pidfile()
+
+    # megatools status
+    megatools_status = False
+    megatools_msg = "Not Running."
+    pids = utils.get_pid_by_name(MEGA_PROC)
+    # if no error
+    if pids:
+        megatools_status = True
+        megatools_msg = "Running. PID(s): " + ", ".join(pids)
+
+    # mg_sched daemon status
+    out, err = utils.check_pidfile(DAEMON_PIDFILE)
+    daemon_msg = "Not Running."
+    daemon_status = False
+    if not err:
+        daemon_status = True
+        daemon_msg = "Running. PID(s): %s" % str(out)
 
     # logging
     import logging
@@ -262,8 +252,8 @@ if __name__ == "__main__":
         r"#                  |___/                                     #",
         r"#                                                            #",
     ]))
-    print("# MEGA:  ", megatools_status)
-    print("# DAEMON:", daemon_status)
+    print("# MEGA:  ", megatools_msg)
+    print("# DAEMON:", daemon_msg)
     print("##############################################################\n")
 
     # do cli stuff
