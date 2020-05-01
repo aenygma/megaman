@@ -6,6 +6,7 @@ This module is to manage a schedule of times and speeds
 that Megatools downloader should run at.
 """
 
+import os
 import sys
 import time as ptime
 import signal
@@ -23,6 +24,7 @@ CONFIG_FILE = "sched.ini"
 CONFIG_PROFILE = "normal"
 DAEMON_PIDFILE = "/tmp/%s.pid" % PROC_NAME
 DAEMON_PIPE = "/tmp/.%s.pipe" % MEGA_PROC
+DAEMON_BAIL_FLAG = False
 
 def kill(process, signo=0, cat="name"):
     """ emulate *nix pkill command """
@@ -62,28 +64,56 @@ def validate():
 def run_schedules():
     """ run evertyhing """
 
-    bail = False
+    global DAEMON_BAIL_FLAG
+    def kick_downloader(speed):
+        """ write speed and signal dowloader to update """
+
+        with open(DAEMON_PIPE, 'w') as filehandle:
+            filehandle.write(speed)
+
+        # if running, signal to update config
+        if megatools_status:
+            print("sending signal to megatools")
+            kill("megatools", signal.SIGHUP)
 
     def sig_handler(signo, frame):
-        print(bail)
+        global DAEMON_BAIL_FLAG
         msg = ("Caught signal: %d | frame: " % signo)  + str(frame)
-        print(msg)
-        if signo == signal.SIGWINCH:
-            msg += " WICNCHYYY!!!! "
+
+        #print(msg)
         with open(DAEMON_PIPE, 'w') as pipe:
-            pipe.write(msg+"\n")
-        if signo == signal.SIGHUP:
-            bail = True
+            pipe.write(msg+ " | " + str(DAEMON_BAIL_FLAG)+"\n")
+        if signo == signal.SIGTERM:
+            DAEMON_BAIL_FLAG = True
 
-    signal.signal(signal.SIGUSR1, sig_handler)
-    signal.signal(signal.SIGHUP, sig_handler)
-    signal.signal(signal.SIGWINCH, sig_handler)
+    #signal.signal(signal.SIGUSR1, sig_handler)
+    signal.signal(signal.SIGTERM, sig_handler)
+    #signal.signal(signal.SIGWINCH, sig_handler)
 
-    while not bail:
+    # begin work
+    config = configparser.ConfigParser()
+    config.read(CONFIG_FILE)
+
+    try:
+        for (time, speed) in config[CONFIG_PROFILE].items():
+            time_str = "%s:%s" % (time[0:2], time[2:])
+            print(time_str)
+            schedule.every().day.at(time_str).do(kick_downloader, speed=speed)
+            time.sleep(5)
+    except:
+        log.error(config)
+        log.error([i for i in config.items()])
+    print("doneeee")
+
+    # now wait.
+    # TODO: this needs to be refreshed when entries added/removed
+    while not DAEMON_BAIL_FLAG:
+        schedule.run_pending()
         ptime.sleep(1)
+
     with open(DAEMON_PIPE, 'w') as pipe:
         pipe.write("done")
-    print('done')
+    
 
 #   ____ _     ___                      _
 #  / ___| |   |_ _|   ___ _ __ ___   __| |___
@@ -165,18 +195,28 @@ def delete_schedule(time):
     click.echo("Removed entry for time: %s" % time)
 
 
-@cli.command(name="run", help="start the scheduler")
-def daemon_run():
+@cli.command(name="start", help="start the scheduler")
+def daemon_start():
     """ Start the scheduling daemon """
 
     if daemon_status:
         click.echo("> Scheduler already running.")
         return
 
-    click.echo("> Trying to start daemon")
-    daemon = Daemonize(app="test_app", pid=DAEMON_PIDFILE,
-                       action=run_schedules)
-    daemon.start()
+    try:
+        pid = os.fork()
+    except OSError as exc:
+        click.echo("> Error: " +  str(exc))
+
+    # child
+    if pid == 0:
+        click.echo("> Trying to start daemon")
+        daemon = Daemonize(app="megatools scheduler", pid=DAEMON_PIDFILE,
+                       action=run_schedules, verbose=True, foreground=True,
+                       logger=log)
+        daemon.start()
+    #parent   
+    return
 
 @cli.command(name="stop", help="stop the scheduler")
 def daemon_stop():
@@ -200,8 +240,17 @@ def daemon_stop():
 
 if __name__ == "__main__":
     click.clear()
-    megatools_status = None
+    megatools_status = kill(MEGA_PROC) == 0
     daemon_status = check_pidfile()
+
+    # logging
+    import logging
+    log = logging.getLogger(__name__)
+    out_hdlr = logging.StreamHandler(sys.stdout)
+    out_hdlr.setFormatter(logging.Formatter('%(asctime)s %(message)s'))
+    out_hdlr.setLevel(logging.INFO)
+    log.addHandler(out_hdlr)
+    log.setLevel(logging.INFO)
 
     # TODO: Display status: Red/Green Icons?
     print("\n".join([
