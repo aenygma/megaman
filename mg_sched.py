@@ -35,7 +35,7 @@ def run_schedules():
         """ write speed and signal dowloader to update """
 
         with open(DAEMON_PIPE, 'w') as filehandle:
-            filehandle.write(speed)
+            filehandle.write(speed+"\n")
 
         # if running, signal to update config
         if megatools_status():
