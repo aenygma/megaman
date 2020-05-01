@@ -38,7 +38,7 @@ def run_schedules():
             filehandle.write(speed)
 
         # if running, signal to update config
-        if megatools_status:
+        if megatools_status():
             log.info("sending signal to megatools")
             utils.kill("megatools", signal.SIGHUP)
 
@@ -96,7 +96,7 @@ def cli():
 @click.argument('speed')
 def cli_add_sched_entry(time, speed):
     """ CLI Stub for adding new schedule entry """
-    return add_sched_entry
+    return add_sched_entry(time, speed)
 
 @cli.command(name='list', help="List schedule entries")
 def cli_list_sched():
@@ -107,7 +107,7 @@ def cli_list_sched():
 @click.argument('time')
 def cli_rem_schedule_entry(time):
     """ CLI Stub to remove schedule entry """
-    return remove_schedule_entry()
+    return remove_schedule_entry(time)
 
 # DAEMON
 
@@ -206,6 +206,12 @@ def remove_schedule_entry(time):
 #  | |_| | (_| |  __/ | | | | | (_) | | | |
 #  |____/ \__,_|\___|_| |_| |_|\___/|_| |_|
 
+def megatools_status():
+    """ Get the current status of the megatools cli downloader """
+
+    pids = utils.get_pid_by_name(MEGA_PROC)
+    return pids != [] # return true if running
+
 def daemon_status():
     """ Get the current status of the scheduling daemon """
 
@@ -226,7 +232,6 @@ def daemon_start():
 
     # child
     if pid == 0:
-        print("> Trying to start daemon")
         daemon = Daemonize(app="megatools scheduler", pid=DAEMON_PIDFILE,
                            action=run_schedules, verbose=True, foreground=True,
                            logger=log, chdir=os.getcwd())
@@ -257,17 +262,15 @@ if __name__ == "__main__":
     click.clear()
 
     # megatools status
-    megatools_status = False
     megatools_msg = "Not Running."
     pids = utils.get_pid_by_name(MEGA_PROC)
     # if no error
     if pids:
-        megatools_status = True
         megatools_msg = "Running. PID(s): " + ", ".join(pids)
 
     # mg_sched daemon status
-    out, err = utils.check_pidfile(DAEMON_PIDFILE)
     daemon_msg = "Not Running."
+    out, err = utils.check_pidfile(DAEMON_PIDFILE)
     if not err:
         daemon_msg = "Running. PID(s): %s" % str(out)
 
@@ -290,7 +293,7 @@ if __name__ == "__main__":
         r"#                  |___/                                     #",
         r"#------------------------------------------------------------#",
     ]))
-    print("#", utils.cprint("MegaTools: ", megatools_status), megatools_msg)
+    print("#", utils.cprint("MegaTools: ", megatools_status()), megatools_msg)
     print("#", utils.cprint("Scheduler: ", daemon_status()), daemon_msg)
     print("##############################################################\n")
 
