@@ -3,3 +3,4 @@
 
 #dirs
 env/
+__pycache__/
