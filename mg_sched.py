@@ -27,15 +27,6 @@ DAEMON_PIDFILE = "/tmp/%s.pid" % PROC_NAME
 DAEMON_PIPE = "/tmp/.%s.pipe" % MEGA_PROC
 DAEMON_BAIL_FLAG = False
 
-def validate():
-    """ validate configs """
-
-    # Check if megatools is running
-    if utils.kill(MEGA_PROC):
-        print("Megatools cli is not running.")
-        sys.exit(1)
-    return True
-
 def run_schedules():
     """ run evertyhing """
 
@@ -95,6 +86,7 @@ def run_schedules():
 # | |___| |___ | |  | (__| | | | | | (_| \__ \
 #  \____|_____|___|  \___|_| |_| |_|\__,_|___/
 
+# CONFIGS
 @click.group(name="CLI", help="Manage Megatools downloader schedule")
 def cli():
     """ dummy function for click argument parsing """
@@ -103,6 +95,40 @@ def cli():
 @cli.command(name='add', help="New/Edit schedule entry")
 @click.argument('time')
 @click.argument('speed')
+def cli_add_sched_entry(time, speed):
+    """ CLI Stub for adding new schedule entry """
+    return add_sched_entry
+
+@cli.command(name='list', help="List schedule entries")
+def cli_list_sched():
+    """ CLI Stub to list schedule entries"""
+    return list_sched()
+
+@cli.command(name='rem', help="Delete schedule entry")
+@click.argument('time')
+def cli_rem_schedule_entry(time):
+    """ CLI Stub to remove schedule entry """
+    return remove_schedule_entry()
+
+# DAEMON
+
+@cli.command(name="start", help="start the scheduler")
+def cli_daemon_start():
+    """ CLI Stub to start Scheduler """
+    return daemon_start()
+
+@cli.command(name="stop", help="stop the scheduler")
+def cli_daemon_stop():
+    """ CLI Stub to stop Scheduler """
+    return daemon_stop()
+
+#   ____             __ _
+#  / ___|___  _ __  / _(_) __ _
+# | |   / _ \| '_ \| |_| |/ _` |
+# | |__| (_) | | | |  _| | (_| |
+#  \____\___/|_| |_|_| |_|\__, |
+#                         |___/
+
 def add_sched_entry(time, speed):
     """ add new schedule entry """
 
@@ -137,7 +163,11 @@ def add_sched_entry(time, speed):
     with open(CONFIG_FILE, 'w') as filehandle:
         config.write(filehandle)
 
-@cli.command(name='list', help="List schedule entries")
+    # if running, restart
+    if daemon_status():
+        daemon_stop()
+        daemon_start()
+
 def list_sched():
     """ list schedule entries """
 
@@ -151,8 +181,6 @@ def list_sched():
         print(time, "\t", speed)
     print()
 
-@cli.command(name='rem', help="Delete schedule entry")
-@click.argument('time')
 def remove_schedule_entry(time):
     """ remove schedule entry """
 
@@ -168,23 +196,38 @@ def remove_schedule_entry(time):
         config.write(filehandle)
     click.echo("Removed entry for time: %s" % time)
 
+    # if running, restart
+    if daemon_status():
+        daemon_stop()
+        daemon_start()
 
-@cli.command(name="start", help="start the scheduler")
+#   ____
+#  |  _ \  __ _  ___ _ __ ___   ___  _ __
+#  | | | |/ _` |/ _ \ '_ ` _ \ / _ \| '_ \
+#  | |_| | (_| |  __/ | | | | | (_) | | | |
+#  |____/ \__,_|\___|_| |_| |_|\___/|_| |_|
+
+def daemon_status():
+    """ Get the current status of the scheduling daemon """
+
+    out, err = utils.check_pidfile(DAEMON_PIDFILE)
+    return not err
+
 def daemon_start():
     """ Start the scheduling daemon """
 
-    if daemon_status:
-        click.echo("> Scheduler already running.")
+    if daemon_status():
+        print("> Scheduler already running.")
         return
 
     try:
         pid = os.fork()
     except OSError as exc:
-        click.echo("> Error: " +  str(exc))
+        print("> Error: " +  str(exc))
 
     # child
     if pid == 0:
-        click.echo("> Trying to start daemon")
+        print("> Trying to start daemon")
         daemon = Daemonize(app="megatools scheduler", pid=DAEMON_PIDFILE,
                            action=run_schedules, verbose=True, foreground=True,
                            logger=log, chdir=os.getcwd())
@@ -192,19 +235,18 @@ def daemon_start():
     #parent
     return
 
-@cli.command(name="stop", help="stop the scheduler")
 def daemon_stop():
     """ Stop the scheduling daemon """
 
-    if not daemon_status:
-        click.echo("> Scheduler not running.")
+    if not daemon_status():
+        print("> Scheduler not running.")
         return
 
     # try stopping it
     with open(DAEMON_PIDFILE, 'r') as filehandle:
         error = utils.kill(filehandle.read(), signo=signal.SIGHUP, cat="pid") != 0
     if error:
-        click.echo("Couldn't stop scheduler.")
+        print("Couldn't stop scheduler.")
 
 #                  _
 #  _ __ ___   __ _(_)_ __
@@ -227,9 +269,7 @@ if __name__ == "__main__":
     # mg_sched daemon status
     out, err = utils.check_pidfile(DAEMON_PIDFILE)
     daemon_msg = "Not Running."
-    daemon_status = False
     if not err:
-        daemon_status = True
         daemon_msg = "Running. PID(s): %s" % str(out)
 
     # logging
@@ -250,10 +290,10 @@ if __name__ == "__main__":
         r"#  | | | | | |  __/ (_| | (_| | \__ \ (__| | | |  __/ (_| |  #",
         r"#  |_| |_| |_|\___|\__, |\__,_| |___/\___|_| |_|\___|\__,_|  #",
         r"#                  |___/                                     #",
-        r"#                                                            #",
+        r"#------------------------------------------------------------#",
     ]))
-    print("# MEGA:  ", megatools_msg)
-    print("# DAEMON:", daemon_msg)
+    print("# MegaTools: ", megatools_msg)
+    print("# Scheduler: ", daemon_msg)
     print("##############################################################\n")
 
     # do cli stuff

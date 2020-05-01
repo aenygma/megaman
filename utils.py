@@ -63,4 +63,12 @@ def open_nonblock_pipe(pipe):
         fcntl.fcntl(fd, fcntl.F_SETFL, fl | os.O_NONBLOCK)
     return fd
 
+def validate():
+    """ validate configs """
+
+    # Check if megatools is running
+    if utils.kill(MEGA_PROC):
+        print("Megatools cli is not running.")
+        sys.exit(1)
+    return True
 
