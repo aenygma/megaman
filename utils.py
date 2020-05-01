@@ -6,6 +6,13 @@ import subprocess
 
 import psutil
 
+# ref: https://www.geeksforgeeks.org/print-colors-python-terminal/
+class bg:
+    black='\034[40m'
+    red='\033[41m'
+    green='\033[42m'
+    reset='\033[0m'
+
 def get_pid_by_name(proc_name):
     """ get the pid of a given process """
 
@@ -72,3 +79,8 @@ def validate():
         sys.exit(1)
     return True
 
+def cprint(msg, status=True):
+    if status:
+        return bg.green + msg + bg.reset
+    else:
+        return bg.red + msg + bg.reset

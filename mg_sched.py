@@ -71,7 +71,6 @@ def run_schedules():
         log.error(e)
 
     # now wait.
-    # TODO: this needs to be refreshed when entries added/removed
     while not DAEMON_BAIL_FLAG:
         schedule.run_pending()
         ptime.sleep(1)
@@ -281,7 +280,6 @@ if __name__ == "__main__":
     log.addHandler(out_hdlr)
     log.setLevel(logging.INFO)
 
-    # TODO: Display status: Red/Green Icons?
     print("\n".join([
         r"##############################################################",
         r"#                                         _              _   #",
@@ -292,8 +290,8 @@ if __name__ == "__main__":
         r"#                  |___/                                     #",
         r"#------------------------------------------------------------#",
     ]))
-    print("# MegaTools: ", megatools_msg)
-    print("# Scheduler: ", daemon_msg)
+    print("#", utils.cprint("MegaTools: ", megatools_status), megatools_msg)
+    print("#", utils.cprint("Scheduler: ", daemon_status()), daemon_msg)
     print("##############################################################\n")
 
     # do cli stuff
