@@ -1,6 +1,7 @@
 """
 db functions for mg_sched
 """
+# pylint: disable=C0103
 
 import sqlite3 as sqlite
 
@@ -48,9 +49,7 @@ def _generic_get(sql):
 
 
 # get transfers currently in progress
-get_in_progress = lambda : _generic_get("select * from entries where inprogress = 1");
+get_in_progress = lambda: _generic_get("select * from entries where inprogress = 1")
 
 # get transfers still pending
-get_pending = lambda : _generic_get("select * from entries where completed = 0");
-
-
+get_pending = lambda: _generic_get("select * from entries where completed = 0")
