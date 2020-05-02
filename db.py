@@ -34,13 +34,23 @@ def dict_factory(cursor, row):
 
 # / INTERNALS
 
-def get_in_progress():
-    """ get transfers currently in progress """
+# GENERIC GET
+def _generic_get(sql):
+    """ generic query for database """
 
     ret = []
     conn = _connect()
     with conn:
-        for row in conn.execute("select * from entries where inprogress = 1"):
+        for row in conn.execute(sql):
             ret.append(row)
     _close(conn)
     return ret
+
+
+# get transfers currently in progress
+get_in_progress = lambda : _generic_get("select * from entries where inprogress = 1");
+
+# get transfers still pending
+get_pending = lambda : _generic_get("select * from entries where completed = 0");
+
+
