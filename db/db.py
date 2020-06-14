@@ -14,6 +14,7 @@ def _connect(dbfile=DB_FILE):
 
     conn = sqlite.connect(dbfile)
     conn.row_factory = dict_factory
+    conn.text_factory = bytes
     return conn
 
 def _close(conn):
@@ -42,14 +43,29 @@ def _generic_get(sql):
     ret = []
     conn = _connect()
     with conn:
-        for row in conn.execute(sql):
+        res = None
+        if isinstance(sql, tuple):
+            res = conn.execute(*sql)
+        else:
+            res = conn.execute(sql)
+
+        for row in res:
             ret.append(row)
+
     _close(conn)
     return ret
 
+## GETTERS ##
 
 # get transfers currently in progress
-get_in_progress = lambda: _generic_get("select * from entries where inprogress = 1")
+get_in_progress = lambda: _generic_get("SELECT * FROM entries WHERE inprogress = 1")
 
 # get transfers still pending
-get_pending = lambda: _generic_get("select * from entries where completed = 0")
+get_pending = lambda: _generic_get("SELECT * FROM entries WHERE completed = 0")
+
+## SETTERS ##
+
+# set an entry to completed
+set_completed = lambda row_id: _generic_get((
+    "UPDATE entries SET inprogress = 0, completed = 1 WHERE id = ?",
+    (str(row_id),) ))
