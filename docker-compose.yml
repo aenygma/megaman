@@ -2,11 +2,15 @@ version: '3.4'
 
 services:
   consumer:
-    build: ./megatools-docker
+    build:
+        context: .
+        dockerfile: ./megatools-docker/Dockerfile
     volumes:
     - queuedb:/data/queuedb
   queue:
-    build: ./queue
+    build:
+        context: .
+        dockerfile: ./queue/Dockerfile
     volumes:
     - queuedb:/data/queuedb
 
