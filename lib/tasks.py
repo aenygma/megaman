@@ -26,14 +26,14 @@ def list_items():
 
 @huey.task()
 # test task for diagnostics
-def echo_test(msg):
+def diag_echo(msg):
     """
     echo back a message
     """
 
-    print("> Consumer:", msg)
+    print("> Consumer: %s\n > Sleeping for 5 seconds" % msg)
     time.sleep(5)
 
 @huey.task()
-def add(a,b):
+def diag_add(a,b):
     return a+b
