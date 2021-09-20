@@ -4,15 +4,15 @@ services:
   consumer:
     build:
         context: .
-        dockerfile: ./megatools-docker/Dockerfile
+        dockerfile: ./consumer/Dockerfile
     volumes:
-    - queuedb:/data/queuedb
+    - ./_db:/data/queuedb
   queue:
     build:
         context: .
         dockerfile: ./queue/Dockerfile
     volumes:
-    - queuedb:/data/queuedb
+    - ./_db:/data/queuedb
 
 volumes:
-  queuedb:
+  _db:
