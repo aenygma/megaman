@@ -1,6 +1,6 @@
 import peewee
 
-db = peewee.SqliteDatabase("/data/history.db")
+db = peewee.SqliteDatabase("/data/queuedb/history.db")
 
 class Entries(peewee.Model):
 
