@@ -24,6 +24,16 @@ def _entry_done(item_id):
     entry.completed = 1
     entry.save()
 
+@huey.task()
+def _entry_inprogress(item_id):
+    """
+    database helper to set in_progress to 1
+    """
+
+    entry = Entries.get(item_id)
+    entry.in_progress = 1
+    entry.save()
+
 def add_item(url, name, **kwargs):
     """
     add a item to download
@@ -40,8 +50,9 @@ def add_item(url, name, **kwargs):
 
     # start consumer
     # XXX: set done iff no failures or errors
-    pipeline = (tasks.start_consumer.s(url).then(
-                _entry_done, item_id))
+    pipeline = (_entry_inprogress.s(item_id)
+                .then(tasks.start_consumer,url)
+                .then(_entry_done, item_id))
 
     # set task status to done in history db
     #  set blocking or add this as callback
@@ -49,3 +60,21 @@ def add_item(url, name, **kwargs):
     huey.enqueue(pipeline)
 
     return
+
+def list_items(inprogress=None, completed=None):
+    """
+    list items
+    """
+
+    if inprogress is not None:
+        inprogress = True
+    else:
+        inprogress = False
+
+
+    if completed is not None:
+        completed = True
+    else:
+        completed = False
+
+    return Entries.get(inprogress=inprogress, completed=completed)
